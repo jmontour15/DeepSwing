@@ -9,6 +9,31 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from model import EventDetector
 
+'''
+REFERENCE
+
+Index	Body Part
+------------------------
+0	    Nose
+1	    Left Eye
+2	    Right Eye
+3	    Left Ear
+4	    Right Ear
+5	    Left Shoulder
+6	    Right Shoulder
+7	    Left Elbow
+8	    Right Elbow
+9	    Left Wrist
+10	    Right Wrist
+11	    Left Hip
+12	    Right Hip
+13	    Left Knee
+14	    Right Knee
+15	    Left Ankle
+16	    Right Ankle
+
+'''
+
 def Get_Metrics(input_path, YOLO_path, swingnet_path): # angle will be either down-the-line or face on
     # TODO: 
     # 1. Differentiate face on vs. down-the-line
@@ -22,8 +47,13 @@ def Get_Metrics(input_path, YOLO_path, swingnet_path): # angle will be either do
     print("Swing Timings Collected")
     for timing in swing_timings.keys():
         print(f"{timing} - frame: {swing_timings[timing]['frame']}, time: {round(swing_timings[timing]['time'], 3)}s")
-
-    pass
+    
+    keypoints = []
+    for result in pose_estimation:
+        xyn = pose_estimation[result].xyn  # normalized
+        keypoints.append(xyn)
+    
+    swing_angles = get_swing_angles(keypoints, swing_timings)
 
 def Get_Pose_Estimation(input_video_path, model_path):
     # Load model of correct size
@@ -172,6 +202,110 @@ def Get_Swing_Timings(input_path, model_path, input_size=160, seq_length=64):
             'time': float(timestamp),
             'confidence': float(confidence[i])
         }
-    
+    # Remove edge case where address isn't recognized
+    # Only happens if there isnt enough time before swing starts)
+    if result["Address"]["time"] > result["Toe-up"]["time"]:
+        result["Address"]["time"] = result["Toe-up"]["time"] - 0.7
+        result["Address"]["frame"] = result["Toe-up"]["frame"] - 0.7*fps
+        # If -0.7 makes address time negative
+        if result["Address"]["time"] < 0:
+            result["Address"]["time"] = 0
+            result["Address"]["frame"] = 0
+
     return result
+
+def get_swing_angles(keypoints, timings):
+
+    # Metrics at address
+    address = timings["Address"]["frame"]
+    address_angles = calculate_event_angles(keypoints[address])
+
+    # Metrics at toe-up
+    toe_up = timings["Toe-up"]["frame"]
+    toe_up_angles = calculate_event_angles(keypoints[toe_up])
+
+    # Metrics at mid-backswing
+    mid_backswing = timings["Mid-backswing"]["frame"]
+    mid_backswing_angles = calculate_event_angles(keypoints[mid_backswing])
+
+    # Metrics at top
+    top = timings["Top"]["frame"]
+    top_angles = calculate_event_angles(keypoints[top])
+
+    # Metrics at mid-downswing
+    mid_downswing = timings["Mid-backswing"]["frame"]
+    mid_downswing_angles = calculate_event_angles(keypoints[mid_downswing])
+
+    # Metrics at impact
+    impact = timings["Impact"]["frame"]
+    impact_angles = calculate_event_angles(keypoints[impact])
+
+    angles = {
+        "Address": address_angles,
+        "Toe-up": toe_up_angles,
+        "Mid-backswing": mid_backswing_angles,
+        "Top": top_angles,
+        "Mid-downswing": mid_downswing_angles,
+        "Impact": impact_angles
+    }
+    return angles
+
+def calculate_event_angles(keypoints):
+    # calculates swing angles at a single time point
+    #   Each arm to shoulders
+    #   Shoulders to hips
+    #   Upper arm to lower arm
+    #   Center of hips horizontal value
+
+    # Each arm to shoulders
+    left_arm_shoulders = calculate_angle(p1 = keypoints[7], p2 = keypoints[5], p3 = keypoints[6])
+    right_arm_shoulders = calculate_angle(p1 = keypoints[8], p2 = keypoints[6], p3 = keypoints[5])
+
+    # Calculates shoulders angle to ground
+    shoulders = calculate_angle(p1 = (keypoints[6][0]-1, keypoints[6][1]), p2 = keypoints[6], p3 = keypoints[5])
+
+    # Calculates hips angle to ground
+    hips = calculate_angle(p1 = (keypoints[12][0]-1, keypoints[12][1]), p2 = keypoints[12], p3 = keypoints[11])
+
+    # Upper arm to lower arm
+    arm_angle_left = calculate_angle(p1 = keypoints[9], p2 = keypoints[7], p3 = keypoints[5])
+    arm_angle_right = calculate_angle(p1 = keypoints[10], p2 = keypoints[8], p3 = keypoints[6])
+
+    # Mid point of hips to determine lean
+    com = np.mean([keypoints[11][0], keypoints[12][0]])
+
+    angles = [left_arm_shoulders, 
+              right_arm_shoulders,
+              shoulders,
+              hips,
+              arm_angle_left,
+              arm_angle_right,
+              com]
+    
+    return angles
+
+def calculate_angle(p1, p2, p3):
+    """
+    Computes the angle at joint p2 given limb segments p1->p2 and p2->p3.
+    
+    Parameters:
+    p1, p2, p3: Tuples representing (x, y) coordinates.
+    
+    Returns:
+    Angle in degrees.
+    """
+    # Convert points to NumPy arrays
+    v1 = np.array(p1) - np.array(p2)  # Vector from p2 to p1
+    v2 = np.array(p3) - np.array(p2)  # Vector from p2 to p3
+
+    # Compute dot product and magnitudes
+    dot_product = np.dot(v1, v2)
+    norm_v1 = np.linalg.norm(v1)
+    norm_v2 = np.linalg.norm(v2)
+
+    # Compute angle in radians and convert to degrees
+    angle_rad = np.arccos(dot_product / (norm_v1 * norm_v2))
+    angle_deg = np.degrees(angle_rad)
+
+    return angle_deg
 
