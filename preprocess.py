@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-def preprocess_golf_video(input_path, output_path, bbox=None, dim=160, start_frame=None, end_frame=None):
+def preprocess_swing_video(input_path, output_path, bbox=None, dim=160, start_frame=None, end_frame=None):
     """
     Preprocess a golf swing video by cropping to the region of interest,
     resizing while maintaining aspect ratio, and padding to a square format.
