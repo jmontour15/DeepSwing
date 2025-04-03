@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Golf Swing Video</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h2 class="title">Upload Your Golf Swing Video</h2>
+    <div id="videoContainer">
+        <video id="videoPreview" width="400" controls></video>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <!-- Custom file input button -->
+            <input type="file" id="videoInput" accept="video/mp4" required>
+            <button type="button" id="customFileButton">Select Swing Video</button>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+    <h3>Swing Analysis Results:</h3>
+    <p id="swingAngles"></p>
+    <p id="lean"></p>
+    <p id="prompt"></p>
+    <p id="response"></p>
+
+    <script>
+        // Custom file input button functionality
+        document.getElementById('customFileButton').addEventListener('click', function() {
+            document.getElementById('videoInput').click();
+        });
+
+        // Handle form submission to upload the video
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fileInput = document.getElementById('videoInput');
+            if (!fileInput.files.length) return;
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/upload", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert("Upload successful!");
+                    // document.getElementById("videoPreview").src = result.video_url;
+                    // document.getElementById("swingAngles").innerText = "Swing Angles: " + JSON.stringify(result.swing_angles);
+                    // document.getElementById("lean").innerText = "Lean: " + JSON.stringify(result.lean);
+                    // document.getElementById("prompt").innerText = "Prompt: " + JSON.stringify(result.prompt);
+                    document.getElementById("response").innerHTML = JSON.stringify(result.response);
+                } else {
+                    alert("Upload failed: " + result.detail);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert("Upload failed due to an error.");
+            }
+        });
+    </script>
+</body>
+</html>

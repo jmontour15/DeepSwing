@@ -1,0 +1,85 @@
+body {
+    background-color: rgb(65, 110, 65);
+    padding: 0px 100px;
+}
+
+.title {
+    text-align: center;
+    color: rgb(234, 212, 101);
+}
+
+#videoContainer {
+    height: 400px;
+    width: 500px;
+    background-color: rgb(91, 115, 91);
+    padding: 20px;
+    outline: solid 4px rgb(59, 75, 59);
+    margin: auto;
+    border-radius: 25px;
+}
+
+#videoContainer video {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    height: 300px;
+    width: 400px;
+}
+
+#videoContainer form {
+    text-align: center;
+    margin-top: 40px;
+    margin-bottom: 30px;
+}
+
+/* Hide the default file input */
+#videoInput {
+    display: none;
+}
+
+/* Style the custom file button */
+#customFileButton {
+    background-color: #4CAF50; /* Green background */
+    color: white; /* White text */
+    border: none;
+    border-radius: 10px;
+    margin-right: 60px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Hover effect for the custom button */
+#customFileButton:hover {
+    background-color: #3d8d41;
+}
+#customFileButton:active {
+    background-color: #3d8d41;
+    color: #235226;
+}
+
+#uploadForm button[type="submit"] {
+    background-color: #c4822c; /* Blue background */
+    color: white; /* White text */
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+/* Hover effect for the upload button */
+#uploadForm button[type="submit"]:hover {
+    background-color: #a46d24;
+}
+#uploadForm button[type="submit"]:active {
+    background-color: #a46d24;
+    color: #6b4718;
+}
+
+
+
+
+
+
